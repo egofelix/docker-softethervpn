@@ -1,8 +1,13 @@
-FROM alpine:latest as builder
+FROM alpine:latest as prep
 
 # Download QEMU, see https://github.com/docker/hub-feedback/issues/1261
 ENV QEMU_URL https://github.com/balena-io/qemu/releases/download/v3.0.0%2Bresin/qemu-3.0.0+resin-arm.tar.gz
 RUN apk add curl && curl -L ${QEMU_URL} | tar zxvf - -C . --strip-components 1
+
+FROM arm32v7/alpine as builder
+
+# Add QEMU
+COPY --from=prep qemu-arm-static /usr/bin
 
 WORKDIR /usr/src
 
@@ -16,6 +21,7 @@ RUN apk add --no-cache \
       cmake \
       gnu-libiconv \
       zlib-dev
+
 RUN git clone --recurse-submodules https://github.com/SoftEtherVPN/SoftEtherVPN.git
 
 RUN cd SoftEtherVPN \
@@ -27,7 +33,7 @@ FROM arm32v7/alpine
 MAINTAINER EgoFelix <docker@egofelix.de>
 
 # Add QEMU
-COPY --from=builder qemu-arm-static /usr/bin
+COPY --from=prep qemu-arm-static /usr/bin
 
 WORKDIR /
 
