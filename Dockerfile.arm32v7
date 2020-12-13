@@ -1,0 +1,54 @@
+FROM alpine:latest as builder
+
+# Download QEMU, see https://github.com/docker/hub-feedback/issues/1261
+ENV QEMU_URL https://github.com/balena-io/qemu/releases/download/v3.0.0%2Bresin/qemu-3.0.0+resin-arm.tar.gz
+RUN apk add curl && curl -L ${QEMU_URL} | tar zxvf - -C . --strip-components 1
+
+# Main
+WORKDIR /usr/src
+
+RUN apk add --no-cache \
+      binutils \
+      build-base \
+      readline-dev \
+      openssl-dev \
+      ncurses-dev \
+      git \
+      cmake \
+      gnu-libiconv \
+      zlib-dev \
+    && git clone --recurse-submodules https://github.com/SoftEtherVPN/SoftEtherVPN.git \
+    && cd SoftEtherVPN \
+    && ./configure \
+    && make -C tmp \
+    && make -C tmp install \
+    && tar -czf /artifacts.tar.gz /usr/local
+
+FROM arm32v7/alpine
+
+# Add QEMU
+COPY --from=builder qemu-arm-static /usr/bin
+
+MAINTAINER EgoFelix <docker@egofelix.de>
+
+WORKDIR /
+
+COPY --from=build /artifacts.tar.gz .
+
+RUN apk add --no-cache \
+      ca-certificates \
+      iptables \
+      readline \
+      gnu-libiconv \
+      zlib \
+    && tar xfz artifacts.tar.gz \
+    && rm artifacts.tar.gz \
+    && mkdir /etc/vpnserver \
+    && touch /etc/vpnserver/vpn_server.config \
+    && ln -sf /etc/vpnserver/vpn_server.config /usr/local/libexec/softether/vpnserver/vpn_server.config \
+    && mkdir -p /var/log/vpnserver/packet_log /var/log/vpnserver/security_log /var/log/vpnserver/server_log \
+    && ln -sf /var/log/vpnserver/packet_log /usr/local/libexec/softether/vpnserver/packet_log \
+    && ln -sf /var/log/vpnserver/security_log /usr/local/libexec/softether/vpnserver/security_log \
+    && ln -sf /var/log/vpnserver/server_log /usr/local/libexec/softether/vpnserver/server_log
+
+ENTRYPOINT ["vpnserver"]
