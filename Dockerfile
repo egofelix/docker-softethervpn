@@ -11,13 +11,12 @@ RUN apk add --no-cache \
       git \
       cmake \
       gnu-libiconv \
-      zlib-dev \
-    && git clone --recurse-submodules https://github.com/SoftEtherVPN/SoftEtherVPN.git \
-    && cd SoftEtherVPN \
+      zlib-dev
+RUN git clone --recurse-submodules https://github.com/SoftEtherVPN/SoftEtherVPN.git
+
+RUN cd SoftEtherVPN \
     && ./configure \
-    && make -C tmp \
-    && make -C tmp install \
-    && tar -czf /artifacts.tar.gz /usr/local
+    && make -C build
 
 FROM alpine:latest
 
@@ -25,22 +24,17 @@ MAINTAINER EgoFelix <docker@egofelix.de>
 
 WORKDIR /
 
-COPY --from=build /artifacts.tar.gz .
-
 RUN apk add --no-cache \
       ca-certificates \
       iptables \
       readline \
       gnu-libiconv \
       zlib \
-    && tar xfz artifacts.tar.gz \
-    && rm artifacts.tar.gz \
-    && mkdir /etc/vpnserver \
-    && touch /etc/vpnserver/vpn_server.config \
-    && ln -sf /etc/vpnserver/vpn_server.config /usr/local/libexec/softether/vpnserver/vpn_server.config \
-    && mkdir -p /var/log/vpnserver/packet_log /var/log/vpnserver/security_log /var/log/vpnserver/server_log \
-    && ln -sf /var/log/vpnserver/packet_log /usr/local/libexec/softether/vpnserver/packet_log \
-    && ln -sf /var/log/vpnserver/security_log /usr/local/libexec/softether/vpnserver/security_log \
-    && ln -sf /var/log/vpnserver/server_log /usr/local/libexec/softether/vpnserver/server_log
+    && mkdir -p /opt/softether/
 
-ENTRYPOINT ["vpnserver"]
+ENV LD_LIBRARY_PATH /opt/softether
+
+# Install Binaries
+COPY --from=builder /usr/src/SoftEtherVPN/build/libcedar.so /usr/src/SoftEtherVPN/build/libmayaqua.so /usr/src/SoftEtherVPN/build/vpnserver /usr/src/SoftEtherVPN/build/vpncmd /usr/src/SoftEtherVPN/build/libcedar.so /usr/src/SoftEtherVPN/build/libmayaqua.so /usr/src/SoftEtherVPN/build/hamcore.se2 /opt/softether/
+
+ENTRYPOINT ["/opt/softether/vpnserver", "execsvc"]
