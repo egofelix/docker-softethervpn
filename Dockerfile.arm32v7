@@ -42,6 +42,6 @@ RUN apk add --no-cache \
 ENV LD_LIBRARY_PATH /opt/softether
 
 # Install Binaries
-COPY --from=builder /usr/src/SoftEtherVPN/build/libcedar.so /usr/src/SoftEtherVPN/build/libmayaqua.so /usr/src/SoftEtherVPN/build/vpnserver /usr/src/SoftEtherVPN/build/vpncmd /usr/src/SoftEtherVPN/build/libce$
+COPY --from=builder /usr/src/SoftEtherVPN/build/libcedar.so /usr/src/SoftEtherVPN/build/libmayaqua.so /usr/src/SoftEtherVPN/build/vpnserver /usr/src/SoftEtherVPN/build/vpncmd /usr/src/SoftEtherVPN/build/libcedar.so /usr/src/SoftEtherVPN/build/libmayaqua.so /usr/src/SoftEtherVPN/build/hamcore.se2 /opt/softether/
 
 ENTRYPOINT ["/opt/softether/vpnserver", "execsvc"]
